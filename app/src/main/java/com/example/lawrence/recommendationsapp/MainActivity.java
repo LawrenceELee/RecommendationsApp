@@ -1,5 +1,6 @@
 package com.example.lawrence.recommendationsapp;
 
+import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.RecyclerView;
@@ -10,6 +11,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.example.lawrence.recommendationsapp.api.Etsy;
+import com.example.lawrence.recommendationsapp.google.GoogleServicesHelper;
 import com.example.lawrence.recommendationsapp.model.ActiveListings;
 import com.example.lawrence.recommendationsapp.model.Listing;
 
@@ -22,6 +24,8 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView mRecyclerView;
     private ProgressBar mProgressBar;
     private TextView mErrorView;
+
+    private GoogleServicesHelper mGoogleServicesHelper;
 
 
     @Override
@@ -38,19 +42,41 @@ public class MainActivity extends AppCompatActivity {
         adapter = new ListingAdapter(this);
         mRecyclerView.setAdapter(adapter);
 
-        if(savedInstanceState == null){         // first time loading: show loading, call network and fetch JSON data.
-            showLoading();
-            Etsy.getActiveListings(adapter);
-        } else {                                // it was loaded before.
+        // make network call to google play services
+        mGoogleServicesHelper = new GoogleServicesHelper(this, adapter);
+
+        showLoading();
+
+        if(savedInstanceState != null){         // first time loading: show loading, call network and fetch JSON data.
             if( savedInstanceState.containsKey(STATE_ACTIVE_LISTINGS) ){
                 adapter.success((ActiveListings) savedInstanceState.getParcelable(STATE_ACTIVE_LISTINGS), null);
-                showLoading();
-            } else {
-                showLoading();
-                Etsy.getActiveListings(adapter);
             }
         }
 
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        mGoogleServicesHelper.disconnect();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        mGoogleServicesHelper.connect();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        // pass it through to google play services helper handle activity method.
+        mGoogleServicesHelper.handleActivityResult(requestCode, resultCode, data);
+
+        if( requestCode == ListingAdapter.REQUEST_CODE_PLUS_ONE ){
+            adapter.notifyDataSetChanged();
+        }
     }
 
     // if we have that data, we'll pass that data on the out-state.

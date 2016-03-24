@@ -7,3 +7,4 @@
 /build
 /captures
 /app/src/main/assets/config.properties
+/app/src/main/java/com/example/lawrence/recommendationsapp/HideKeys.java
